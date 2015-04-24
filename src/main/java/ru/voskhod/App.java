@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -42,7 +43,8 @@ public class App {
     static String webServer = "spo-cikd";
     static String fileServer = "spo-cikd";
     static String logFolder = "C:\\GAS_M\\POCHTA\\file";
-    static String dbName = "RA00C000";
+    static String dbName = "RT0011";
+    //static String dbName = "RA00C000";
     
     public static void main(String[] args) throws IOException, AWTException {
         
@@ -53,6 +55,14 @@ public class App {
         ctx.reconfigure();
         
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                checkTnsPing();
+            }
+        }, 0, 2, TimeUnit.SECONDS);
+
         /*
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -73,6 +83,7 @@ public class App {
         }, 1, 1, TimeUnit.SECONDS);
         */
         
+        /*
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -80,7 +91,7 @@ public class App {
                 checkShare();
             }
         }, 0, 1, TimeUnit.SECONDS);
-        
+        */
         final SystemTray systemTray = SystemTray.getSystemTray();
         final TrayIcon trayIcon = new TrayIcon(ImageIO.read(new File( App.class.getResource("/trayIcon.png").getFile() )), "Мониторинг");
 
@@ -108,7 +119,7 @@ public class App {
         trayIcon.setImageAutoSize(true);
         //trayIcon.displayMessage("Программа диагностики запущена", "", TrayIcon.MessageType.INFO);
         
-        trayIcon.displayMessage("", "Запуск мониторинга.\nКаталог с журналами: " + logFolder, TrayIcon.MessageType.INFO);
+        trayIcon.displayMessage("", "Запуск мониторинга.\nКаталог с журналами: " + logFolder + "   ", TrayIcon.MessageType.INFO);
     }
 
     public static void checkPing() {
@@ -145,14 +156,12 @@ public class App {
         }
         System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing end");
     }
-    /*
     public static void checkTnsPing() {
         long startDate = System.currentTimeMillis();
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing start");
+        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing start");
         Process p = null;
         try {
             String line;
-//            p = Runtime.getRuntime().exec( "ping yahoo.com -n 1" );
             p = Runtime.getRuntime().exec( "tnsping " + dbName );
             BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream(), "Cp866"));
             String output = "";
@@ -160,27 +169,31 @@ public class App {
                 output += line + " ";
             }
             p.destroy();
-            int startPos = output.toString().indexOf("время");
-            int stopPos = output.toString().indexOf("мс ");
+            
+            Pattern pattern = Pattern.compile("OK\\s\\((.*?)\\s");
+            Matcher m = pattern.matcher(output);
+
             String duration = "";
             String info = "-";
-            if( startPos > 0 && stopPos > 0 ) {
-                duration = output.substring(startPos + 6, stopPos);
-                System.err.println("parse: " + duration);
-                logger.info(logFormat, "PING", dt.format( new Date(startDate) ), duration, "OK", info );
+            if (m.find()) {
+                duration = m.group(1);
+                logger.info(logFormat, "TNSPING", dt.format( new Date(startDate) ), duration, "OK", info );
             } else {
-                System.err.println("not found");
+                pattern = Pattern.compile("TNS-(.*?)$");
+                m = pattern.matcher(output);
+                if (m.find()) {
+                    info = m.group(0);
+                } else {
+                    info = output;
+                }
                 duration = new Long( System.currentTimeMillis() - startDate ).toString();
-                info = "Время выполнения процесса";
-                logger.warn(logFormat, "PING", dt.format( new Date(startDate) ), duration, "Ошибка", output );
+                logger.warn(logFormat, "TNSPING", dt.format( new Date(startDate) ), duration, "Ошибка", info );
             }
-            //logger.info(logFormat, "PING", dt.format( new Date(startDate) ), duration, "OK", info );
         } catch (Exception ex) {
-            logger.error(logFormat, "PING ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
+            logger.error(logFormat, "TNSPING ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
         }
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing end");
+        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing end");
     }
-    */
     public static void checkShare() {
         //Date startDate = new Date();
         long startDate = System.currentTimeMillis();
