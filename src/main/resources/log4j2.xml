@@ -10,7 +10,7 @@
                 <pattern>%m%n</pattern>
             </PatternLayout>
             <Policies>
-                <SizeBasedTriggeringPolicy size="50 KB" />
+                <SizeBasedTriggeringPolicy size="250 KB" />
             </Policies>
             <DefaultRolloverStrategy max="4"/>
         </RollingFile>

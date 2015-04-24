@@ -52,16 +52,42 @@ public class App {
     static String dbUrl = "jdbc:oracle:thin:@" + dbName;
     static String dbUser = "voshod";
     static String dbPassword = "voshod";
+    static Connection dbConn = null;
+    static int testInterval = 10;
     
     public static void main(String[] args) throws IOException, AWTException {
-        System.setProperty("logFolder", logFolder);
+        // Connect to Oracle
         System.setProperty("oracle.net.tns_admin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin");
-        
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+
+        long startDate = System.currentTimeMillis();
+        try {
+            dbConn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        } catch (Exception e) {
+            //e.printStackTrace();
+        }
+
+        // Set logging folder
+        System.setProperty("logFolder", logFolder);
         org.apache.logging.log4j.core.LoggerContext ctx = 
                 (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
         ctx.reconfigure();
         
+        // Prepare executors
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        
+        // Run tests
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                checkDBQuery();
+            }
+        }, 0, testInterval, TimeUnit.SECONDS);
         
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -69,45 +95,41 @@ public class App {
             public void run() {
                 checkDBConnect();
             }
-        }, 0, 2, TimeUnit.SECONDS);
-        /*
+        }, 0, testInterval, TimeUnit.SECONDS);
+        
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 checkTnsPing();
             }
-        }, 0, 2, TimeUnit.SECONDS);
-        */
-        /*
+        }, 0, testInterval, TimeUnit.SECONDS);
+        
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 checkPing();
             }
-        }, 1, 1, TimeUnit.SECONDS);
-        */
+        }, 1, testInterval, TimeUnit.SECONDS);
         
-        /*
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 checkHttp();
             }
-        }, 1, 1, TimeUnit.SECONDS);
-        */
+        }, 1, testInterval, TimeUnit.SECONDS);
         
-        /*
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
                 checkShare();
             }
-        }, 0, 1, TimeUnit.SECONDS);
-        */
+        }, 0, testInterval, TimeUnit.SECONDS);
+        
+        // Add system tray icon
         final SystemTray systemTray = SystemTray.getSystemTray();
         final TrayIcon trayIcon = new TrayIcon(ImageIO.read(new File( App.class.getResource("/trayIcon.png").getFile() )), "Мониторинг");
 
@@ -121,11 +143,19 @@ public class App {
         });
         popupMenu.add(itemRestart);
         
+        // Add menu
         MenuItem itemExit = new MenuItem("Выход");
         itemExit.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 scheduledExecutorService.shutdown();
                 systemTray.remove(trayIcon);
+                if (dbConn != null) {
+                    try {
+                        dbConn.close();
+                    } catch (Exception ex) {
+                    }
+                }
+
             }
         });
         popupMenu.add(itemExit);
@@ -158,17 +188,17 @@ public class App {
             String info = "-";
             if( startPos > 0 && stopPos > 0 ) {
                 duration = output.substring(startPos + 6, stopPos);
-                System.err.println("parse: " + duration);
-                logger.info(logFormat, "PING", dt.format( new Date(startDate) ), duration, "OK", info );
+                //System.err.println("parse: " + duration);
+                logger.info(logFormat, "PING     ", dt.format( new Date(startDate) ), duration, "OK", info );
             } else {
-                System.err.println("not found");
+                //System.err.println("not found");
                 duration = new Long( System.currentTimeMillis() - startDate ).toString();
                 info = "Время выполнения процесса";
-                logger.warn(logFormat, "PING", dt.format( new Date(startDate) ), duration, "Ошибка", output );
+                logger.warn(logFormat, "PING     ", dt.format( new Date(startDate) ), duration, "Ошибка", output );
             }
             //logger.info(logFormat, "PING", dt.format( new Date(startDate) ), duration, "OK", info );
         } catch (Exception ex) {
-            logger.error(logFormat, "PING ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
+            logger.error(logFormat, "PING     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
         }
         System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing end");
     }
@@ -193,7 +223,7 @@ public class App {
             String info = "-";
             if (m.find()) {
                 duration = m.group(1);
-                logger.info(logFormat, "TNSPING", dt.format( new Date(startDate) ), duration, "OK", info );
+                logger.info(logFormat, "TNSPING  ", dt.format( new Date(startDate) ), duration, "OK", info );
             } else {
                 pattern = Pattern.compile("TNS-(.*?)$");
                 m = pattern.matcher(output);
@@ -203,10 +233,10 @@ public class App {
                     info = output;
                 }
                 duration = new Long( System.currentTimeMillis() - startDate ).toString();
-                logger.warn(logFormat, "TNSPING", dt.format( new Date(startDate) ), duration, "Ошибка", info );
+                logger.warn(logFormat, "TNSPING  ", dt.format( new Date(startDate) ), duration, "Ошибка", info );
             }
         } catch (Exception ex) {
-            logger.error(logFormat, "TNSPING ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
+            logger.error(logFormat, "TNSPING  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
         }
         System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing end");
     }
@@ -220,9 +250,9 @@ public class App {
             PrintWriter writer = new PrintWriter(new File("g:\\gas_m\\paip\\CheckShare.txt"));
             writer.println( dt.format( date ) );
             writer.close();
-            logger.info(logFormat, "SHARE", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
+            logger.info(logFormat, "SHARE    ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (FileNotFoundException ex) {
-            logger.error(logFormat, "SHARE ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
+            logger.error(logFormat, "SHARE    ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
         }
         System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare end");
     }
@@ -273,14 +303,14 @@ public class App {
             //System.out.println("URL Content... \n" + html.toString());
             //System.out.println("Done");
             if( status == 200 ) {
-                logger.info(logFormat, "HTTP", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
+                logger.info(logFormat, "HTTP     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
             } else {
-                logger.warn(logFormat, "HTTP", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "ОШИБКА", status + ": " + html );
+                logger.warn(logFormat, "HTTP     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "ОШИБКА", status + ": " + html );
             }
         } catch (Exception e) {
             //e.printStackTrace();
             System.out.println("Error code: " + status);
-            logger.error(logFormat, "HTTP", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "ОШИБКА", status + ": " + e.getMessage() + html);
+            logger.error(logFormat, "HTTP     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "ОШИБКА", status + ": " + e.getMessage() + html);
         }
     }
     public static void checkDBConnect() {
@@ -293,7 +323,7 @@ public class App {
         Connection conn = null;
         long startDate = System.currentTimeMillis();
         try {
-            conn = DriverManager.getConnection(dbUrl, "voshod", "voshod");
+            conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
             System.out.println("Connection established");
             logger.info(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (Exception e) {
@@ -305,6 +335,28 @@ public class App {
                     conn.close();
                 } catch (Exception e) {
                     logger.error(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage() );
+                }
+            }
+        }
+    }
+    public static void checkDBQuery() {
+        long startDate = System.currentTimeMillis();
+        Statement stmt = null;
+        try {
+            stmt = dbConn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT idarm FROM arm");
+            if (rs.next()) {
+                System.out.println(rs.getString(1));
+            }
+            logger.info(logFormat, "DBQUERY  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error(logFormat, "DBQUERY  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage() );
+        } finally {
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (Exception e) {
                 }
             }
         }
