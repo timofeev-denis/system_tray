@@ -21,6 +21,10 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.Executors;
@@ -43,18 +47,30 @@ public class App {
     static String webServer = "spo-cikd";
     static String fileServer = "spo-cikd";
     static String logFolder = "C:\\GAS_M\\POCHTA\\file";
-    static String dbName = "RT0011";
-    //static String dbName = "RA00C000";
+    //static String dbName = "RT0011";
+    static String dbName = "RA00C000";
+    static String dbUrl = "jdbc:oracle:thin:@" + dbName;
+    static String dbUser = "voshod";
+    static String dbPassword = "voshod";
     
     public static void main(String[] args) throws IOException, AWTException {
-        
         System.setProperty("logFolder", logFolder);
+        System.setProperty("oracle.net.tns_admin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin");
         
         org.apache.logging.log4j.core.LoggerContext ctx = 
                 (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
         ctx.reconfigure();
         
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                checkDBConnect();
+            }
+        }, 0, 2, TimeUnit.SECONDS);
+        /*
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -62,7 +78,7 @@ public class App {
                 checkTnsPing();
             }
         }, 0, 2, TimeUnit.SECONDS);
-
+        */
         /*
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -265,6 +281,32 @@ public class App {
             //e.printStackTrace();
             System.out.println("Error code: " + status);
             logger.error(logFormat, "HTTP", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "ОШИБКА", status + ": " + e.getMessage() + html);
+        }
+    }
+    public static void checkDBConnect() {
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+
+        Connection conn = null;
+        long startDate = System.currentTimeMillis();
+        try {
+            conn = DriverManager.getConnection(dbUrl, "voshod", "voshod");
+            System.out.println("Connection established");
+            logger.info(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
+        } catch (Exception e) {
+            //e.printStackTrace();
+            logger.error(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage() );
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (Exception e) {
+                    logger.error(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage() );
+                }
+            }
         }
     }
 }
