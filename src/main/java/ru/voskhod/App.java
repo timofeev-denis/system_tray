@@ -46,7 +46,7 @@ public class App {
     //static String webServer = "yahoo.com";
     static String webServer = "spo-cikd";
     static String fileServer = "spo-cikd";
-    static String logFolder = "C:\\GAS_M\\POCHTA\\file";
+    static String logFolder = ".";
     //static String dbName = "RT0011";
     static String dbName = "RA00C000";
     static String dbUrl = "jdbc:oracle:thin:@" + dbName;
