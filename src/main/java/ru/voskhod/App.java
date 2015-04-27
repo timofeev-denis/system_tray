@@ -9,6 +9,7 @@ import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -130,8 +131,13 @@ public class App {
         }, 0, testInterval, TimeUnit.SECONDS);
         
         // Add system tray icon
+        URL imageURL = App.class.getResource("/images/trayIcon.png");
+        System.err.println( imageURL );
+        
         final SystemTray systemTray = SystemTray.getSystemTray();
-        final TrayIcon trayIcon = new TrayIcon(ImageIO.read(new File( App.class.getResource("/trayIcon.png").getFile() )), "Мониторинг");
+        //final TrayIcon trayIcon = new TrayIcon(ImageIO.read(new File( App.class.getResource("/trayIcon.png").getFile() )), "Мониторинг");
+        BufferedImage icon = ImageIO.read(App.class.getResourceAsStream("/images/trayIcon.png"));
+        final TrayIcon trayIcon = new TrayIcon(icon.getScaledInstance(16, 16, Image.SCALE_SMOOTH), "Мониторинг");
 
         PopupMenu popupMenu = new PopupMenu();
         MenuItem itemRestart = new MenuItem("Перезапуск");
