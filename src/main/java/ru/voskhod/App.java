@@ -57,30 +57,7 @@ public class App {
     static Properties config = new Properties();
     
     public static void main(String[] args) throws IOException, AWTException {
-        readSettings();
-        dbUrl = "jdbc:oracle:thin:@" + config.getProperty("dbName");
-        dt = new SimpleDateFormat(config.getProperty("dateTimeFormat"));
-        //dt = new SimpleDateFormat()
-        // Connect to Oracle
-        System.setProperty("oracle.net.tns_admin", config.getProperty("tnsAdmin"));
-        try {
-            Class.forName("oracle.jdbc.OracleDriver");
-        } catch (ClassNotFoundException ex) {
-            ex.printStackTrace();
-        }
-
-        try {
-            dbConn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
-        } catch (Exception e) {
-            //e.printStackTrace();
-        }
-
-        // Set logging folder
-        System.setProperty("logFolder", config.getProperty("logFolder"));
-        org.apache.logging.log4j.core.LoggerContext ctx = 
-                (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
-        ctx.reconfigure();
-
+        init();
         // Prepare executors
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
         
@@ -143,7 +120,8 @@ public class App {
         itemRestart.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                init();
+                trayIcon.displayMessage("Мониторинг перезапущен", "Каталог с журналами: " + config.getProperty("logFolder") + "   ", TrayIcon.MessageType.INFO);
             }
         });
         popupMenu.add(itemRestart);
@@ -170,7 +148,7 @@ public class App {
         trayIcon.setImageAutoSize(true);
         //trayIcon.displayMessage("Программа диагностики запущена", "", TrayIcon.MessageType.INFO);
         
-        trayIcon.displayMessage("", "Запуск мониторинга.\nКаталог с журналами: " + config.getProperty("logFolder") + "   ", TrayIcon.MessageType.INFO);
+        trayIcon.displayMessage("Мониторинг запущен", "Каталог с журналами: " + config.getProperty("logFolder") + "   ", TrayIcon.MessageType.INFO);
     }
 
     public static void checkPing() {
@@ -375,5 +353,32 @@ public class App {
             }
         }
         return true;
+    }
+    public static void init() {
+        readSettings();
+        dbUrl = "jdbc:oracle:thin:@" + config.getProperty("dbName");
+        dt = new SimpleDateFormat(config.getProperty("dateTimeFormat"));
+        // Connect to Oracle
+        System.setProperty("oracle.net.tns_admin", config.getProperty("tnsAdmin"));
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+
+        try {
+            if(dbConn != null ) {
+                dbConn.close();
+            }
+            dbConn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        } catch (Exception e) {
+            //e.printStackTrace();
+        }
+
+        // Set logging folder
+        System.setProperty("logFolder", config.getProperty("logFolder"));
+        org.apache.logging.log4j.core.LoggerContext ctx = 
+                (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
+        ctx.reconfigure();
     }
 }
