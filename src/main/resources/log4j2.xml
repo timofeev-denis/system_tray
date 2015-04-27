@@ -10,9 +10,10 @@
                 <pattern>%m%n</pattern>
             </PatternLayout>
             <Policies>
-                <SizeBasedTriggeringPolicy size="250 KB" />
+                <!-- <SizeBasedTriggeringPolicy size="250 KB" /> -->
+                <TimeBasedTriggeringPolicy />
             </Policies>
-            <DefaultRolloverStrategy max="4"/>
+            <DefaultRolloverStrategy max="49"/>
         </RollingFile>
     </Appenders>
     <Loggers>

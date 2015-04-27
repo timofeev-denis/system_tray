@@ -170,7 +170,7 @@ public class App {
 
     public static void checkPing() {
         long startDate = System.currentTimeMillis();
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing start");
+        //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing start");
         Process p = null;
         try {
             String line;
@@ -200,11 +200,11 @@ public class App {
         } catch (Exception ex) {
             logger.error(logFormat, "PING     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
         }
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing end");
+        //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing end");
     }
     public static void checkTnsPing() {
         long startDate = System.currentTimeMillis();
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing start");
+        //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing start");
         Process p = null;
         try {
             String line;
@@ -238,12 +238,12 @@ public class App {
         } catch (Exception ex) {
             logger.error(logFormat, "TNSPING  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
         }
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing end");
+        //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing end");
     }
     public static void checkShare() {
         //Date startDate = new Date();
         long startDate = System.currentTimeMillis();
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare start");
+        //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare start");
         try {
             Date date = new Date();
             SimpleDateFormat dt = new SimpleDateFormat("HH:mm:ss dd.mm.yyyy");
@@ -254,7 +254,7 @@ public class App {
         } catch (FileNotFoundException ex) {
             logger.error(logFormat, "SHARE    ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
         }
-        System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare end");
+        //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare end");
     }
     public static void checkIIS() {
         String url = "http://spo-cikd/check.asp";
@@ -324,7 +324,7 @@ public class App {
         long startDate = System.currentTimeMillis();
         try {
             conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
-            System.out.println("Connection established");
+            //System.out.println("Connection established");
             logger.info(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (Exception e) {
             //e.printStackTrace();
@@ -346,7 +346,7 @@ public class App {
             stmt = dbConn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT idarm FROM arm");
             if (rs.next()) {
-                System.out.println(rs.getString(1));
+                //System.out.println(rs.getString(1));
             }
             logger.info(logFormat, "DBQUERY  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (Exception e) {
