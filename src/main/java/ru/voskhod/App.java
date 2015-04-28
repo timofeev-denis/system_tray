@@ -148,7 +148,7 @@ public class App {
         trayIcon.setImageAutoSize(true);
         //trayIcon.displayMessage("Программа диагностики запущена", "", TrayIcon.MessageType.INFO);
         
-        trayIcon.displayMessage("Мониторинг запущен", "Каталог с журналами: " + config.getProperty("logFolder") + "   ", TrayIcon.MessageType.INFO);
+        trayIcon.displayMessage("Мониторинг запущен", "Каталог с журналами: " + new File( config.getProperty("logFolder") ).getAbsoluteFile() + "   ", TrayIcon.MessageType.INFO);
     }
 
     public static void checkPing() {
@@ -334,7 +334,8 @@ public class App {
             config.setProperty("dateTimeFormat", "HH:mm:ss dd.MM.yyyy");
             config.setProperty("webServer", "spo-cikd");
             config.setProperty("fileServer", "spo-cikd");
-            config.setProperty("logFolder", ".");
+//            config.setProperty("logFolder", "");
+            config.setProperty("logFolder", "c:\\gas_m\\pochta\\file");
             config.setProperty("dbName", "RA00C000");
             config.setProperty("testInterval", "10");
             config.setProperty("tnsAdmin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin" );
