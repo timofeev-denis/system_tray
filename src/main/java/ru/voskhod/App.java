@@ -38,6 +38,8 @@ import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import com.sun.jna.*;
+import com.sun.jna.ptr.IntByReference;
 
 public class App {
     static final Logger logger = LogManager.getLogger(App.class.getName());
@@ -50,12 +52,17 @@ public class App {
     //static String dbName = "RT0011";
     //static String dbName = "RA00C000";
     static String dbUrl = null;
-    static String dbUser = "voshod";
-    static String dbPassword = "voshod";
+//    static String dbUser = "voshod";
+//    static String dbPassword = "voshod";
     static Connection dbConn = null;
     //static int testInterval = 10;
-    static Properties config = new Properties();
+    static Properties config = null;
     
+    public interface SNet40 extends Library {
+        SNet40 INSTANCE = (SNet40) Native.loadLibrary("c:\\windows\\system32\\snet40.dll", SNet40.class);
+        int OpenSnet(String str1);
+        NativeLong GetCurrentSnDbUser(byte[] str1, IntByReference num1, byte[] str2, IntByReference num2);
+    }
     public static void main(String[] args) throws IOException, AWTException {
         init();
         // Prepare executors
@@ -285,18 +292,18 @@ public class App {
         Connection conn = null;
         long startDate = System.currentTimeMillis();
         try {
-            conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+            conn = DriverManager.getConnection(dbUrl, config.getProperty("dbUser"), config.getProperty("dbPassword"));
             //System.out.println("Connection established");
             logger.info(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (Exception e) {
             //e.printStackTrace();
-            logger.error(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage() );
+            logger.error(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage().trim() );
         } finally {
             if (conn != null) {
                 try {
                     conn.close();
                 } catch (Exception e) {
-                    logger.error(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage() );
+                    logger.error(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage().trim() );
                 }
             }
         }
@@ -305,6 +312,9 @@ public class App {
         long startDate = System.currentTimeMillis();
         Statement stmt = null;
         try {
+            if(dbConn == null) {
+                throw new Exception("Отсутствует соединение с БД");
+            }
             stmt = dbConn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT idarm FROM arm");
             if (rs.next()) {
@@ -312,8 +322,7 @@ public class App {
             }
             logger.info(logFormat, "DBQUERY  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (Exception e) {
-            e.printStackTrace();
-            logger.error(logFormat, "DBQUERY  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage() );
+            logger.error(logFormat, "DBQUERY  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage().trim() );
         } finally {
             if (stmt != null) {
                 try {
@@ -325,26 +334,23 @@ public class App {
     }
     public static boolean readSettings() {
         boolean newFile = false;
+        Properties p = getDefaultConfig();
+        config = p;
+        System.err.println(config.getProperty("dbName"));
         try {
+            System.err.println("****************************************************");
             InputStream in = new FileInputStream(new File(App.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent() + File.separator + "config.properties");
             config.load(in);
             in.close();
         } catch (FileNotFoundException ex) {
-            // Файл с настройками не найден - применяем настройки по умолчанию
-            config.setProperty("dateTimeFormat", "HH:mm:ss dd.MM.yyyy");
-            config.setProperty("webServer", "spo-cikd");
-            config.setProperty("fileServer", "spo-cikd");
-//            config.setProperty("logFolder", "");
-            config.setProperty("logFolder", "c:\\gas_m\\pochta\\file");
-            config.setProperty("dbName", "RA00C000");
-            config.setProperty("testInterval", "10");
-            config.setProperty("tnsAdmin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin" );
+            // Файл с настройками не найден
             newFile = true;
         } catch (IOException ex) {
             logger.error(logFormat, ex.getMessage());
         }
-        // Файл с настройками не найден - создаём новый
-        if(newFile) {
+        
+        if(newFile && config.size() > 0) {
+            // Файл с настройками не найден - создаём новый
             try {
                 String configPath = new File(App.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent();
                 config.store(new FileOutputStream(configPath + File.separator + "config.properties"), "");
@@ -371,9 +377,9 @@ public class App {
             if(dbConn != null ) {
                 dbConn.close();
             }
-            dbConn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+            dbConn = DriverManager.getConnection(dbUrl, config.getProperty("dbUser"), config.getProperty("dbPassword"));
         } catch (Exception e) {
-            //e.printStackTrace();
+            logger.error(logFormat, e.getMessage());
         }
 
         // Set logging folder
@@ -381,5 +387,24 @@ public class App {
         org.apache.logging.log4j.core.LoggerContext ctx = 
                 (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
         ctx.reconfigure();
+    }
+    public static Properties getDefaultConfig() {
+        byte[] str1 = new byte[256];
+        byte[] str2 = new byte[256];
+        IntByReference num1 = new IntByReference(256);
+        IntByReference num2 = new IntByReference(256);
+        Properties defaultConfig = new Properties();
+        defaultConfig.setProperty("dateTimeFormat", "dd.MM.yyyy HH:mm:ss");
+        defaultConfig.setProperty("webServer", "spo-cikd");
+        defaultConfig.setProperty("fileServer", "spo-cikd");
+        defaultConfig.setProperty("logFolder", "c:\\gas_m\\pochta\\file");
+        defaultConfig.setProperty("dbName", "RA00C000");
+        defaultConfig.setProperty("testInterval", "10");
+        defaultConfig.setProperty("tnsAdmin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin" );
+        SNet40.INSTANCE.OpenSnet("");
+        SNet40.INSTANCE.GetCurrentSnDbUser(str1, num1, str2, num2);
+        defaultConfig.setProperty("dbUser", str1.toString());
+        defaultConfig.setProperty("dbPassword", str2.toString());
+        return defaultConfig;
     }
 }
