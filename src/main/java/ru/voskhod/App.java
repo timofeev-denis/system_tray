@@ -236,7 +236,6 @@ public class App {
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare start");
         try {
             Date date = new Date();
-            SimpleDateFormat dt = new SimpleDateFormat("HH:mm:ss dd.mm.yyyy");
             PrintWriter writer = new PrintWriter(new File("g:\\gas_m\\paip\\CheckShare.txt"));
             writer.println( dt.format( date ) );
             writer.close();
@@ -334,11 +333,9 @@ public class App {
     }
     public static boolean readSettings() {
         boolean newFile = false;
-        Properties p = getDefaultConfig();
-        config = p;
+        config = getDefaultConfig();
         System.err.println(config.getProperty("dbName"));
         try {
-            System.err.println("****************************************************");
             InputStream in = new FileInputStream(new File(App.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent() + File.separator + "config.properties");
             config.load(in);
             in.close();
