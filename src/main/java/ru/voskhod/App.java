@@ -199,7 +199,7 @@ public class App {
             }
             //logger.info(logFormat, "PING", dt.format( new Date(startDate) ), duration, "OK", info );
         } catch (Exception ex) {
-            logger.error(logFormat, "PING     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
+            logger.error(logFormat, "PING     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage().trim());
         }
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkPing end");
     }
@@ -237,7 +237,7 @@ public class App {
                 logger.warn(logFormat, "TNSPING  ", dt.format( new Date(startDate) ), duration, "Ошибка", info );
             }
         } catch (Exception ex) {
-            logger.error(logFormat, "TNSPING  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
+            logger.error(logFormat, "TNSPING  ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage().trim());
         }
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkTnsPing end");
     }
@@ -252,7 +252,7 @@ public class App {
             writer.close();
             logger.info(logFormat, "SHARE    ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (FileNotFoundException ex) {
-            logger.error(logFormat, "SHARE    ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage());
+            logger.error(logFormat, "SHARE    ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", ex.getMessage().trim());
         }
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare end");
     }
@@ -289,7 +289,7 @@ public class App {
         } catch (Exception e) {
             //e.printStackTrace();
             System.out.println("Error code: " + status);
-            logger.error(logFormat, "HTTP     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", status + ": " + e.getMessage() + html);
+            logger.error(logFormat, "HTTP     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", status + ": " + e.getMessage().trim() + html);
         }
     }
     public static void checkDBConnect() {
@@ -354,7 +354,7 @@ public class App {
             // Файл с настройками не найден
             newFile = true;
         } catch (IOException ex) {
-            logger.error(logFormat, ex.getMessage());
+            logger.error(logFormat, ex.getMessage().trim());
         }
         
         if(newFile && config.size() > 0) {
@@ -364,37 +364,41 @@ public class App {
                 config.store(new FileOutputStream(configPath + File.separator + "config.properties"), "");
                 System.out.println("Trying to write settings to " + configPath + File.separator + "config.properties");
             } catch (IOException ex) {
-                logger.error(logFormat, ex.getMessage());
+                logger.error(logFormat, ex.getMessage().trim());
             }
         }
         return true;
     }
     public static void init() {
         readSettings();
-        dbUrl = "jdbc:oracle:thin:@" + config.getProperty("dbName");
         dt = new SimpleDateFormat(config.getProperty("dateTimeFormat"));
+        // Set logging folder
+        System.setProperty("logFolder", config.getProperty("logFolder"));
+        org.apache.logging.log4j.core.LoggerContext ctx = 
+                (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
+        ctx.reconfigure();
+        
         // Connect to Oracle
+        dbUrl = "jdbc:oracle:thin:@" + config.getProperty("dbName");
+        long startDate = System.currentTimeMillis();
         System.setProperty("oracle.net.tns_admin", config.getProperty("tnsAdmin"));
         try {
             Class.forName("oracle.jdbc.OracleDriver");
         } catch (ClassNotFoundException ex) {
             ex.printStackTrace();
         }
-
         try {
             if(dbConn != null ) {
                 dbConn.close();
             }
             dbConn = DriverManager.getConnection(dbUrl, config.getProperty("dbUser"), config.getProperty("dbPassword"));
         } catch (Exception e) {
-            logger.error(logFormat, e.getMessage());
+//            System.err.println("Date1: " + dt.format( new Date(startDate) ));
+//            System.err.println("Date2: " + (System.currentTimeMillis() - startDate));
+//            System.err.println("MSG: " + e.getMessage());
+            //System.err.println("MSGt: " + e.getMessage().trim());
+            logger.error(logFormat, "*** INIT ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", e.getMessage().trim() );
         }
-
-        // Set logging folder
-        System.setProperty("logFolder", config.getProperty("logFolder"));
-        org.apache.logging.log4j.core.LoggerContext ctx = 
-                (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
-        ctx.reconfigure();
     }
     public static Properties getDefaultConfig() {
         byte[] str1 = new byte[256];
