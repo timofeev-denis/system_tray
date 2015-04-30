@@ -236,7 +236,7 @@ public class App {
         //System.out.println(new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()) + " checkShare start");
         try {
             Date date = new Date();
-            PrintWriter writer = new PrintWriter(new File("g:\\gas_m\\paip\\CheckShare.txt"));
+            PrintWriter writer = new PrintWriter(new File(config.getProperty("shareFile")));
             writer.println( dt.format( date ) );
             writer.close();
             logger.info(logFormat, "SHARE    ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
@@ -398,6 +398,7 @@ public class App {
         defaultConfig.setProperty("dbName", "RA00C000");
         defaultConfig.setProperty("testInterval", "10");
         defaultConfig.setProperty("tnsAdmin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin" );
+        defaultConfig.setProperty("shareFile", "g:\\gas_m\\paip\\CheckShare.txt" );
         SNet40.INSTANCE.OpenSnet("");
         SNet40.INSTANCE.GetCurrentSnDbUser(str1, num1, str2, num2);
         defaultConfig.setProperty("dbUser", str1.toString());
