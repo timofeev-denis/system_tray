@@ -40,6 +40,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.sun.jna.*;
 import com.sun.jna.ptr.IntByReference;
+import java.text.ParseException;
+import java.util.Calendar;
 
 public class App {
     static final Logger logger = LogManager.getLogger(App.class.getName());
@@ -117,6 +119,14 @@ public class App {
             }
         }, 1, Long.parseLong(config.getProperty("testInterval")), TimeUnit.SECONDS);
         
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                cleanOldLogs();
+            }
+        }, 0, 7, TimeUnit.DAYS);
+        
         // Add system tray icon
         final SystemTray systemTray = SystemTray.getSystemTray();
         BufferedImage icon = ImageIO.read(App.class.getResourceAsStream("/images/trayIcon.png"));
@@ -156,6 +166,7 @@ public class App {
         //trayIcon.displayMessage("Программа диагностики запущена", "", TrayIcon.MessageType.INFO);
         
         trayIcon.displayMessage("Мониторинг запущен", "Каталог с журналами: " + new File( config.getProperty("logFolder") ).getAbsoluteFile() + "   ", TrayIcon.MessageType.INFO);
+//        cleanOldLogs();
     }
 
     public static void checkPing() {
@@ -399,10 +410,33 @@ public class App {
         defaultConfig.setProperty("testInterval", "10");
         defaultConfig.setProperty("tnsAdmin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin" );
         defaultConfig.setProperty("shareFile", "g:\\gas_m\\paip\\CheckShare.txt" );
+        defaultConfig.setProperty("rollingInterval", "30" );
         SNet40.INSTANCE.OpenSnet("");
         SNet40.INSTANCE.GetCurrentSnDbUser(str1, num1, str2, num2);
         defaultConfig.setProperty("dbUser", str1.toString());
         defaultConfig.setProperty("dbPassword", str2.toString());
         return defaultConfig;
+    }
+    public static void cleanOldLogs() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.DATE, -1 * Integer.parseInt(config.getProperty("rollingInterval")));
+        Date cleanDate = c.getTime();
+        File[] listOfFiles = new File(config.getProperty("logFolder")).listFiles();
+        for(File f : listOfFiles) {
+            if(f.isFile()) {
+                if(f.getName().startsWith("monitoring-")) {
+                    try {
+                        Date d = dateFormat.parse(f.getName().substring(11, 21));
+                        if( d.compareTo(cleanDate) < 0 ) {
+                            f.delete();
+                        }
+                    } catch (Exception ex) {
+                        logger.error(logFormat, ex.getMessage().trim());
+                    }
+                    
+                }
+            }
+        }
     }
 }
