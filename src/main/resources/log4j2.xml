@@ -5,7 +5,7 @@
     </Properties>
     <Appenders>
         <RollingFile name="RollingFile" fileName="${log-path}/monitoring.txt"
-             filePattern="${log-path}/myexample-%d{yyyy-MM-dd}-%i.log" >
+             filePattern="${log-path}/monitoring-%d{yyyy-MM-dd}-%i.txt" >
             <PatternLayout>
                 <pattern>%m%n</pattern>
             </PatternLayout>
