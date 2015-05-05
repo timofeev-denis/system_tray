@@ -125,7 +125,7 @@ public class App {
             public void run() {
                 cleanOldLogs();
             }
-        }, 0, 7, TimeUnit.DAYS);
+        }, 0, 1, TimeUnit.DAYS);
         
         // Add system tray icon
         final SystemTray systemTray = SystemTray.getSystemTray();
