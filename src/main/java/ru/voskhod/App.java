@@ -417,8 +417,15 @@ public class App {
         defaultConfig.setProperty("rollingInterval", "30" );
         SNet40.INSTANCE.OpenSnet("");
         SNet40.INSTANCE.GetCurrentSnDbUser(str1, num1, str2, num2);
-        defaultConfig.setProperty("dbUser", str1.toString());
-        defaultConfig.setProperty("dbPassword", str2.toString());
+        String login = new String(str1);
+        String password = new String( str2 );
+        login = login.replace("\u0000", "");
+        login = login.replace("\\u0000", "");
+        password = password.replace("\u0000", "");
+        password = password.replace("\\u0000", "");
+
+        defaultConfig.setProperty("dbUser", login);
+        defaultConfig.setProperty("dbPassword", password);
         return defaultConfig;
     }
     public static void cleanOldLogs() {
