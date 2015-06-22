@@ -326,7 +326,7 @@ public class App {
                 throw new Exception("Отсутствует соединение с БД");
             }
             stmt = dbConn.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT idarm FROM arm");
+            ResultSet rs = stmt.executeQuery("SELECT * FROM " + config.getProperty("dbTable") + " WHERE ROWNUM=1");
             if (rs.next()) {
                 //System.out.println(rs.getString(1));
             }
@@ -415,6 +415,7 @@ public class App {
         defaultConfig.setProperty("tnsAdmin", "c:\\oracle\\product\\11.2.0\\client_1\\network\\admin" );
         defaultConfig.setProperty("shareFile", "g:\\gas_m\\paip\\CheckShare.txt" );
         defaultConfig.setProperty("rollingInterval", "30" );
+        defaultConfig.setProperty("dbTable", "arm" );
         SNet40.INSTANCE.OpenSnet("");
         SNet40.INSTANCE.GetCurrentSnDbUser(str1, num1, str2, num2);
         String login = new String(str1);
