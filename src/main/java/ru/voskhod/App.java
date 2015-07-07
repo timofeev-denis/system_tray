@@ -42,6 +42,18 @@ import com.sun.jna.*;
 import com.sun.jna.ptr.IntByReference;
 import java.text.ParseException;
 import java.util.Calendar;
+import java.io.UnsupportedEncodingException;
+import java.security.GeneralSecurityException;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.PBEParameterSpec;
+
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
+
 
 public class App {
     static final Logger logger = LogManager.getLogger(App.class.getName());
@@ -59,6 +71,11 @@ public class App {
     static Connection dbConn = null;
     //static int testInterval = 10;
     static Properties config = null;
+    private static final char[] PASSWORD = "enfldsgbnlsngdlksdsgm".toCharArray();
+    private static final byte[] SALT = {
+        (byte) 0xde, (byte) 0x33, (byte) 0x10, (byte) 0x12,
+        (byte) 0xde, (byte) 0x33, (byte) 0x10, (byte) 0x12,};
+
     
     public interface SNet40 extends Library {
         SNet40 INSTANCE = (SNet40) Native.loadLibrary("c:\\windows\\system32\\snet40.dll", SNet40.class);
@@ -302,7 +319,11 @@ public class App {
         Connection conn = null;
         long startDate = System.currentTimeMillis();
         try {
-            conn = DriverManager.getConnection(dbUrl, config.getProperty("dbUser"), config.getProperty("dbPassword"));
+            if(config.getProperty("encryption").equals("1")) {
+                conn = DriverManager.getConnection(dbUrl, decrypt(config.getProperty("dbUser")), decrypt(config.getProperty("dbPassword")));
+            } else {
+                conn = DriverManager.getConnection(dbUrl, config.getProperty("dbUser"), config.getProperty("dbPassword"));
+            }
             //System.out.println("Connection established");
             logger.info(logFormat, "DBCONNECT", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", "-" );
         } catch (Exception e) {
@@ -391,7 +412,12 @@ public class App {
             if(dbConn != null ) {
                 dbConn.close();
             }
-            dbConn = DriverManager.getConnection(dbUrl, config.getProperty("dbUser"), config.getProperty("dbPassword"));
+            if(config.getProperty("encryption").equals("1")) {
+                dbConn = DriverManager.getConnection(dbUrl, decrypt(config.getProperty("dbUser")), decrypt(config.getProperty("dbPassword")));
+            } else {
+                dbConn = DriverManager.getConnection(dbUrl, config.getProperty("dbUser"), config.getProperty("dbPassword"));
+            }
+
         } catch (Exception e) {
 //            System.err.println("Date1: " + dt.format( new Date(startDate) ));
 //            System.err.println("Date2: " + (System.currentTimeMillis() - startDate));
@@ -416,6 +442,7 @@ public class App {
         defaultConfig.setProperty("shareFile", "g:\\gas_m\\paip\\CheckShare.txt" );
         defaultConfig.setProperty("rollingInterval", "30" );
         defaultConfig.setProperty("dbTable", "arm" );
+        defaultConfig.setProperty("encryption", "1" );
         SNet40.INSTANCE.OpenSnet("");
         SNet40.INSTANCE.GetCurrentSnDbUser(str1, num1, str2, num2);
         String login = new String(str1);
@@ -424,9 +451,16 @@ public class App {
         login = login.replace("\\u0000", "");
         password = password.replace("\u0000", "");
         password = password.replace("\\u0000", "");
+        try {
+            defaultConfig.setProperty("dbUser", encrypt(login));
+            defaultConfig.setProperty("dbPassword", encrypt(password));
+        } catch (Exception ex) {
+            logger.error(logFormat, ex.getMessage().trim());
+            defaultConfig.setProperty("encryption", "0" );
+            defaultConfig.setProperty("dbUser", login);
+            defaultConfig.setProperty("dbPassword", password);
+        }
 
-        defaultConfig.setProperty("dbUser", login);
-        defaultConfig.setProperty("dbPassword", password);
         return defaultConfig;
     }
     public static void cleanOldLogs() {
@@ -450,5 +484,30 @@ public class App {
                 }
             }
         }
+    }
+    private static String encrypt(String property) throws GeneralSecurityException, UnsupportedEncodingException {
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBEWithMD5AndDES");
+        SecretKey key = keyFactory.generateSecret(new PBEKeySpec(PASSWORD));
+        Cipher pbeCipher = Cipher.getInstance("PBEWithMD5AndDES");
+        pbeCipher.init(Cipher.ENCRYPT_MODE, key, new PBEParameterSpec(SALT, 20));
+        return base64Encode(pbeCipher.doFinal(property.getBytes("UTF-8")));
+    }
+
+    private static String base64Encode(byte[] bytes) {
+        // NB: This class is internal, and you probably should use another impl
+        return new BASE64Encoder().encode(bytes);
+    }
+
+    private static String decrypt(String property) throws GeneralSecurityException, IOException {
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBEWithMD5AndDES");
+        SecretKey key = keyFactory.generateSecret(new PBEKeySpec(PASSWORD));
+        Cipher pbeCipher = Cipher.getInstance("PBEWithMD5AndDES");
+        pbeCipher.init(Cipher.DECRYPT_MODE, key, new PBEParameterSpec(SALT, 20));
+        return new String(pbeCipher.doFinal(base64Decode(property)), "UTF-8");
+    }
+
+    private static byte[] base64Decode(String property) throws IOException {
+        // NB: This class is internal, and you probably should use another impl
+        return new BASE64Decoder().decodeBuffer(property);
     }
 }
