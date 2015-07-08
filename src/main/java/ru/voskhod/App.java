@@ -454,11 +454,12 @@ public class App {
         try {
             defaultConfig.setProperty("dbUser", encrypt(login));
             defaultConfig.setProperty("dbPassword", encrypt(password));
+            defaultConfig.setProperty("encryption", "1" );
         } catch (Exception ex) {
             logger.error(logFormat, ex.getMessage().trim());
-            defaultConfig.setProperty("encryption", "0" );
             defaultConfig.setProperty("dbUser", login);
             defaultConfig.setProperty("dbPassword", password);
+            defaultConfig.setProperty("encryption", "0" );
         }
 
         return defaultConfig;
