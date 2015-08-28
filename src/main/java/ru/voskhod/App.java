@@ -132,6 +132,14 @@ public class App {
 
             @Override
             public void run() {
+                checkAsp();
+            }
+        }, 1, Long.parseLong(config.getProperty("testInterval")), TimeUnit.SECONDS);
+        
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
                 checkShare();
             }
         }, 1, Long.parseLong(config.getProperty("testInterval")), TimeUnit.SECONDS);
@@ -309,6 +317,47 @@ public class App {
             logger.error(logFormat, "HTTP     ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", status + ": " + e.getMessage().trim() + html);
         }
     }
+    public static void checkAsp() {
+        int status = 0;
+        long startDate = System.currentTimeMillis();
+        StringBuffer html = new StringBuffer();
+        try {
+            String url = "http://" + config.getProperty("webServer") + "/shell/check.asp?sDBName=" + config.getProperty("dbName");
+            if(config.getProperty("encryption").equals("1")) {
+                url = url + "&DBUser=" + decrypt(config.getProperty("dbUser"));
+                url = url + "&DBPass=" + decrypt(config.getProperty("dbPassword"));
+            } else {
+                url = url + "&DBUser=" + config.getProperty("dbUser");
+                url = url + "&DBPass=" + config.getProperty("dbPassword");
+            }
+
+
+            URL obj = new URL(url);
+            HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
+            conn.setReadTimeout(1000);
+
+            status = conn.getResponseCode();
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+
+            while ((inputLine = in.readLine()) != null) {
+                html.append(inputLine);
+            }
+            in.close();
+
+            String aspOK = "CreateObject: OK. OpenDatabase: OK. CreateDynaset: OK. ";
+            if( status == 200 && aspOK.equals(new String(html))) {
+                logger.info(logFormat, "ASP      ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "OK", html );
+            } else if (status == 200) {
+                logger.warn(logFormat, "ASP      ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", html );
+            } else {
+                logger.warn(logFormat, "ASP      ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", status + ": " + html );
+            }
+        } catch (Exception e) {
+            logger.error(logFormat, "ASP      ", dt.format( new Date(startDate) ), System.currentTimeMillis() - startDate, "Ошибка", status + ": " + e.getMessage().trim() + html);
+        }
+    }
     public static void checkDBConnect() {
         try {
             Class.forName("oracle.jdbc.OracleDriver");
@@ -451,6 +500,10 @@ public class App {
         login = login.replace("\\u0000", "");
         password = password.replace("\u0000", "");
         password = password.replace("\\u0000", "");
+        /*
+        String login = "voshod";
+        String password = "voshod";
+        */
         try {
             defaultConfig.setProperty("dbUser", encrypt(login));
             defaultConfig.setProperty("dbPassword", encrypt(password));
