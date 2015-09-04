@@ -31,4 +31,8 @@ Else
 	Response.Write( "OK. " )
 End If
 
+DS.Close
+DS = Nothing
+OraDBSession = Nothing
+
 %>
